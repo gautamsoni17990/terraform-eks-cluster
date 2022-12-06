@@ -8,7 +8,7 @@ terraform {
 
 terraform {
   backend "s3" {
-    bucket         = "my-s3-bucket-terraform-9654743201"
+    bucket         = "my-s3-bucket-terraform-7508692763"
     key            = "my-terraform.tfstate"
     region         = "ap-south-1"
     encrypt        = true
@@ -35,11 +35,13 @@ resource "aws_internet_gateway" "IGW" {
   }
 }
 
-
+/*
 resource "aws_eip" "nateIP" {
   vpc = true
 }
+*/
 
+/*
 resource "aws_nat_gateway" "NATgw" {
   allocation_id = aws_eip.nateIP.id
   subnet_id     = aws_subnet.publicsubnet.id
@@ -52,6 +54,8 @@ resource "aws_nat_gateway" "NATgw" {
     aws_subnet.privatesubnet
   ]
 }
+*/
+
 
 resource "aws_subnet" "publicsubnet" {
   vpc_id                  = aws_vpc.Main.id
@@ -67,6 +71,7 @@ resource "aws_subnet" "privatesubnet" {
   vpc_id            = aws_vpc.Main.id
   cidr_block        = var.PRIVATE_SUBNETS
   availability_zone = var.PRIVATE_AZ
+  map_public_ip_on_launch = true
   tags = {
     Name = "My-Private-Subnet"
   }
@@ -93,15 +98,11 @@ resource "aws_route_table" "PrivateRT" {
   vpc_id = aws_vpc.Main.id
   route {
     cidr_block     = "0.0.0.0/0"
-    nat_gateway_id = aws_nat_gateway.NATgw.id
+    gateway_id = aws_internet_gateway.IGW.id
   }
   tags = {
     Name = "My-Private-RT"
   }
-
-  depends_on = [
-    aws_nat_gateway.NATgw
-  ]
 }
 
 resource "aws_route_table_association" "PublicRTassociation" {
@@ -162,7 +163,6 @@ resource "aws_eks_cluster" "eks-cluster" {
 
   depends_on = [
     aws_iam_role.eks-iam-role,
-    aws_nat_gateway.NATgw
   ]
   tags = {
     Name = "My-EKS-Cluster"
@@ -236,7 +236,6 @@ resource "aws_eks_node_group" "worker-node-group" {
   }
 
   depends_on = [
-    aws_nat_gateway.NATgw,
     aws_iam_role.workernodes,
     aws_iam_role_policy_attachment.AmazonEKSWorkerNodePolicy,
     aws_iam_role_policy_attachment.AmazonEKS_CNI_Policy,
